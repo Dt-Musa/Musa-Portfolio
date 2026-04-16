@@ -1,39 +1,88 @@
-# Portfolio Starter (React + Vite + Tailwind CSS)
+# Musa Portfolio
 
-Clean portfolio starter built with:
+Modern personal portfolio built with React, Vite, and Tailwind CSS v4.
 
-- React
-- Vite
-- Tailwind CSS (via `@tailwindcss/vite`)
+## Tech Stack
 
-## Getting Started
+- React 19
+- Vite 8
+- Tailwind CSS v4 via @tailwindcss/vite
+- PDFKit for resume PDF generation
 
-1. Install dependencies:
+## Current Site Sections
 
-```bash
+- Sticky navigation with mobile menu
+- Hero section with responsive portrait layout
+- Featured projects with real preview images
+- About and capabilities
+- Current Focus (Currently Building and Currently Learning)
+- Writing section with real article links and cover images
+- Contact section
+- Footer with social links and quick navigation
+
+## Run Locally
+
+1. Install dependencies
+
 npm install
-```
 
-2. Start the dev server:
+2. Start development server
 
-```bash
 npm run dev
-```
 
-3. Build for production:
+3. Build for production
 
-```bash
 npm run build
-```
 
-## Where to Edit
+4. Preview production build
 
-- Main page layout and sections: `src/App.jsx`
-- Global styles and Tailwind import: `src/index.css`
-- Vite plugins (React + Tailwind): `vite.config.js`
+npm run preview
 
-## Customize Quickly
+## Resume PDF Workflow
 
-- Replace `YOUR NAME` and intro copy in the hero section.
-- Update project cards in the `projects` array.
-- Change contact links in the contact section.
+The site uses a generated PDF resume at public/cv.pdf.
+
+- Generate or regenerate resume PDF:
+
+npm run generate:resume
+
+- Resume source template:
+
+scripts/generate-resume-pdf.mjs
+
+- Public PDF output:
+
+public/cv.pdf
+
+## Key Files
+
+- Main page and content data:
+
+src/App.jsx
+
+- Global styling and reveal effects:
+
+src/index.css
+
+- Vite plugins/config:
+
+vite.config.js
+
+- HTML shell and metadata:
+
+index.html
+
+## Content Updates
+
+To quickly edit portfolio content, update arrays in src/App.jsx:
+
+- projects
+- capabilities
+- currentProjects
+- learningFocus
+- writing
+
+## Notes
+
+- Project preview images are stored locally in src/assets/projects for reliable rendering.
+- External article cover images are loaded from Paragraph URLs.

@@ -4,6 +4,7 @@ import projectDigitalSphereImage from './assets/projects/digitalsphere.jpg'
 import projectShoebillImage from './assets/projects/shoebill.jpg'
 import projectMusezeroImage from './assets/projects/musezero.jpg'
 import projectJolricImage from './assets/projects/jolric.jpg'
+import projectTrustaLinkImage from './assets/projects/trustalink.jpg'
 
 const navLinks = ['Home', 'Work', 'About', 'Writing', 'Contact']
 
@@ -49,6 +50,16 @@ const projects = [
     live: 'https://jolricdesigns.irankundamusa17.workers.dev',
     image: projectJolricImage,
   },
+  {
+    id: '05',
+    title: 'TrustaLink',
+    category: 'Trust and Networking Platform',
+    description:
+      'A platform focused on trust, identity, and stronger digital interaction flows for modern communities.',
+    stack: ['React', 'Vercel', 'Product UX'],
+    live: 'https://trustalink.vercel.app/',
+    image: projectTrustaLinkImage,
+  },
 ]
 
 const capabilities = [
@@ -67,9 +78,9 @@ const currentProjects = [
       "Actively building and expanding DigitalSphere, Africa's Home for BlockChain & Web3, with improved onboarding, stronger content structure, and clearer learning pathways for students.",
   },
   {
-    title: 'UI Refinement Initiative',
+    title: 'TrustaLink',
     summary:
-      'Leading continuous UI refinement to improve visual clarity, accessibility, and overall product experience across current web projects.',
+      'Building TrustaLink as a trust and networking product focused on identity, credibility, and stronger digital interaction flows.',
   },
   {
     title: 'MintLearn AI Blockchain Study Guide',
@@ -397,7 +408,7 @@ function App() {
         <section id="writing" className="border-b border-zinc-800 py-16 md:py-24" data-reveal>
           <div className="mb-10 md:mb-14">
             <p className="text-xs uppercase tracking-[0.12em] text-[#c9f64a]">Writing & Insights</p>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-stone-100 md:text-5xl">Design Thoughts</h2>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-stone-100 md:text-5xl">Web3 & Blockchain Blogs</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

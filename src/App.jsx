@@ -12,7 +12,7 @@ const projects = [
   {
     id: '01',
     title: 'DigitalSphere',
-    category: 'Web3 Education Platform',
+    category: 'Web3 Platform',
     description:
       "Africa's Home for BlockChain & Web3, focused on onboarding the next generation of blockchain builders in East Africa.",
     stack: ['React', 'Vite', 'Web3 Education'],

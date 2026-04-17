@@ -55,3 +55,75 @@ textarea:focus-visible {
   opacity: 1;
   transform: translateY(0);
 }
+
+@media (max-width: 767px) {
+  [data-reveal] {
+    transform: translateY(12px);
+    transition: opacity 380ms ease, transform 380ms ease;
+  }
+}
+
+@keyframes successFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.success-card-fade {
+  animation: successFadeIn 320ms ease-out;
+}
+
+.card-lift {
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -30px rgba(0, 0, 0, 0.85);
+}
+
+.cta-arrow span {
+  display: inline-block;
+  transition: transform 220ms ease;
+}
+
+.cta-arrow:hover span {
+  transform: translateX(4px);
+}
+
+@keyframes floatPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.scroll-top-btn {
+  animation: floatPulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-reveal],
+  .success-card-fade,
+  .card-lift,
+  .cta-arrow span,
+  .scroll-top-btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

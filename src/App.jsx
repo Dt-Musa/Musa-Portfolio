@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import profileImage from './assets/Profile/Musa.jpeg'
 import projectDigitalSphereImage from './assets/projects/digitalsphere.jpg'
 import projectShoebillImage from './assets/projects/shoebill.jpg'
@@ -132,15 +132,53 @@ const writing = [
   },
 ]
 
+const FORM_ENDPOINT = 'https://formspree.io/f/mkokrrnj'
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const RATE_LIMIT_MS = 2500
+
+const sanitizeSingleLine = (value) =>
+  value
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const sanitizeMultiline = (value) =>
+  value
+    .replace(/[<>]/g, '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .join('\n')
+    .trim()
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: '',
+    website: '',
+  })
+  const [formErrors, setFormErrors] = useState({})
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const lastSubmitAtRef = useRef(0)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 36)
     onScroll()
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const onScrollTopToggle = () => setShowScrollTop(window.scrollY > 420)
+    onScrollTopToggle()
+    window.addEventListener('scroll', onScrollTopToggle)
+    return () => window.removeEventListener('scroll', onScrollTopToggle)
   }, [])
 
   useEffect(() => {
@@ -161,12 +199,135 @@ function App() {
           }
         })
       },
-      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' },
+      { threshold: 0.05, rootMargin: '0px 0px -24px 0px' },
     )
 
     items.forEach((item) => observer.observe(item))
     return () => observer.disconnect()
   }, [])
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }))
+
+    if (formErrors[name]) {
+      setFormErrors((current) => ({
+        ...current,
+        [name]: '',
+      }))
+    }
+
+    if (submitError) {
+      setSubmitError('')
+    }
+  }
+
+  const handleFormReset = () => {
+    setFormData({
+      name: '',
+      email: '',
+      message: '',
+      website: '',
+    })
+    setFormErrors({})
+    setSubmitError('')
+    setIsSubmitting(false)
+    setIsSubmitted(false)
+    lastSubmitAtRef.current = 0
+  }
+
+  const handleFormSubmit = async (event) => {
+    event.preventDefault()
+
+    if (isSubmitting || isSubmitted) {
+      return
+    }
+
+    const now = Date.now()
+    if (now - lastSubmitAtRef.current < RATE_LIMIT_MS) {
+      setSubmitError('Please wait a moment before sending another message.')
+      return
+    }
+
+    const sanitizedData = {
+      name: sanitizeSingleLine(formData.name),
+      email: sanitizeSingleLine(formData.email).toLowerCase(),
+      message: sanitizeMultiline(formData.message),
+      website: sanitizeSingleLine(formData.website),
+    }
+
+    const nextErrors = {}
+
+    if (!sanitizedData.name) {
+      nextErrors.name = 'Name is required.'
+    }
+
+    if (!sanitizedData.email) {
+      nextErrors.email = 'Email is required.'
+    } else if (!EMAIL_PATTERN.test(sanitizedData.email)) {
+      nextErrors.email = 'Please enter a valid email address.'
+    }
+
+    if (!sanitizedData.message) {
+      nextErrors.message = 'Message is required.'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors)
+      return
+    }
+
+    setFormErrors({})
+    setSubmitError('')
+
+    if (sanitizedData.website) {
+      return
+    }
+
+    setIsSubmitting(true)
+    lastSubmitAtRef.current = now
+
+    try {
+      const payload = new FormData()
+      payload.append('name', sanitizedData.name)
+      payload.append('email', sanitizedData.email)
+      payload.append('message', sanitizedData.message)
+      payload.append('_gotcha', sanitizedData.website)
+
+      const response = await fetch(FORM_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+        },
+        body: payload,
+      })
+
+      if (response.status === 200) {
+        setIsSubmitted(true)
+        setFormData({
+          name: '',
+          email: '',
+          message: '',
+          website: '',
+        })
+        return
+      }
+
+      setSubmitError('Message could not be sent right now. Please try again in a moment.')
+    } catch {
+      setSubmitError('Network error. Please check your connection and try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div className="min-h-screen text-stone-100">
@@ -274,6 +435,9 @@ function App() {
                 <img
                   src={profileImage}
                   alt="Musa Irankunda"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
                   className="aspect-[4/5] w-full rounded-2xl border border-zinc-800/80 object-cover object-top shadow-[0_20px_42px_-28px_rgba(0,0,0,0.85)]"
                 />
               </div>
@@ -291,12 +455,13 @@ function App() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {projects.map((project) => (
+            {projects.map((project, index) => (
               <article
                 key={project.title}
-                className={`rounded-3xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-zinc-700 sm:p-6 md:p-8 ${
+                className={`card-lift rounded-3xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-zinc-700 sm:p-6 md:p-8 ${
                   project.featured ? 'md:col-span-2' : ''
                 }`}
+                style={{ transitionDelay: `${index * 70}ms` }}
               >
                 <p className="text-[11px] uppercase tracking-[0.1em] text-[#c9f64a]">{project.id}</p>
                 <h3 className="mt-3 text-xl font-bold tracking-tight text-stone-100 sm:text-2xl">{project.title}</h3>
@@ -331,9 +496,9 @@ function App() {
                   href={project.live}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-6 inline-flex items-center text-xs uppercase tracking-[0.08em] text-[#c9f64a] transition hover:text-[#dafd7b]"
+                  className="cta-arrow mt-6 inline-flex items-center text-xs uppercase tracking-[0.08em] text-[#c9f64a] transition hover:text-[#dafd7b]"
                 >
-                  Visit Live Site {'->'}
+                  Visit Live Site <span className="ml-2" aria-hidden="true">-&gt;</span>
                 </a>
               </article>
             ))}
@@ -412,8 +577,8 @@ function App() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {writing.map((article) => (
-              <article key={article.title} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+            {writing.map((article, index) => (
+              <article key={article.title} className="card-lift rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6" style={{ transitionDelay: `${index * 60}ms` }}>
                 <div className="mb-5 overflow-hidden rounded-xl border border-zinc-800">
                   <img
                     src={article.image}
@@ -428,9 +593,9 @@ function App() {
                   href={article.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 inline-flex text-xs uppercase tracking-[0.08em] text-[#c9f64a] transition hover:text-[#dafd7b]"
+                  className="cta-arrow mt-5 inline-flex text-xs uppercase tracking-[0.08em] text-[#c9f64a] transition hover:text-[#dafd7b]"
                 >
-                  Read Article {'->'}
+                  Read Article <span className="ml-2" aria-hidden="true">-&gt;</span>
                 </a>
               </article>
             ))}
@@ -447,38 +612,88 @@ function App() {
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
-              <label className="block text-sm text-zinc-300">
-                Name
+            {isSubmitted ? (
+              <div className="flex min-h-full items-center justify-center">
+                <div className="success-card-fade w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950/80 p-6 text-center shadow-[0_20px_45px_-30px_rgba(0,0,0,0.9)] sm:p-7">
+                  <p className="text-lg font-semibold text-stone-100">
+                    Message received 🚀 Thanks for reaching out! I&apos;ll review your message and get back to you soon.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleFormReset}
+                    className="mt-6 inline-flex rounded-sm border border-[#c9f64a] px-5 py-2.5 text-xs uppercase tracking-[0.08em] text-[#c9f64a] transition hover:bg-[#c9f64a] hover:text-black"
+                  >
+                    Send another message
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form className="space-y-4" onSubmit={handleFormSubmit} noValidate>
+                <label className="block text-sm text-zinc-300">
+                  Name
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleFormChange}
+                    required
+                    className="mt-2 w-full rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
+                    placeholder="Your name"
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.name ? <span className="mt-1 block text-xs text-red-300">{formErrors.name}</span> : null}
+                </label>
+                <label className="block text-sm text-zinc-300">
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleFormChange}
+                    required
+                    className="mt-2 w-full rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
+                    placeholder="you@example.com"
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.email ? <span className="mt-1 block text-xs text-red-300">{formErrors.email}</span> : null}
+                </label>
+                <label className="block text-sm text-zinc-300">
+                  Message
+                  <textarea
+                    rows="4"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleFormChange}
+                    required
+                    className="mt-2 w-full resize-none rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
+                    placeholder="Tell me about your project"
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.message ? <span className="mt-1 block text-xs text-red-300">{formErrors.message}</span> : null}
+                </label>
+
                 <input
                   type="text"
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
-                  placeholder="Your name"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleFormChange}
+                  className="hidden"
+                  tabIndex="-1"
+                  autoComplete="off"
+                  aria-hidden="true"
                 />
-              </label>
-              <label className="block text-sm text-zinc-300">
-                Email
-                <input
-                  type="email"
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
-                  placeholder="you@example.com"
-                />
-              </label>
-              <label className="block text-sm text-zinc-300">
-                Message
-                <textarea
-                  rows="4"
-                  className="mt-2 w-full resize-none rounded-xl border border-zinc-700 bg-black/20 px-4 py-2.5 text-sm text-stone-100 outline-none transition focus:border-[#c9f64a]"
-                  placeholder="Tell me about your project"
-                />
-              </label>
-              <button
-                type="submit"
-                className="inline-flex rounded-sm bg-[#c9f64a] px-6 py-2.5 text-xs uppercase tracking-[0.08em] text-black transition hover:opacity-90"
-              >
-                Submit
-              </button>
-            </form>
+
+                {submitError ? <p className="text-sm text-red-300">{submitError}</p> : null}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex rounded-sm bg-[#c9f64a] px-6 py-2.5 text-xs uppercase tracking-[0.08em] text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting ? 'Sending...' : 'Submit'}
+                </button>
+              </form>
+            )}
           </div>
         </section>
       </main>
@@ -560,6 +775,19 @@ function App() {
           <p>Designed with intention and clarity.</p>
         </div>
       </footer>
+
+      <button
+        type="button"
+        onClick={handleScrollToTop}
+        aria-label="Scroll to top"
+        className={`scroll-top-btn fixed bottom-6 right-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-700 bg-[#0c0c0f]/90 text-zinc-200 shadow-[0_15px_32px_-22px_rgba(0,0,0,0.9)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-[#c9f64a] hover:text-[#c9f64a] md:bottom-8 md:right-8 ${
+          showScrollTop ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
+        }`}
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 14.5L12 9.25l5.25 5.25" />
+        </svg>
+      </button>
     </div>
   )
 }
